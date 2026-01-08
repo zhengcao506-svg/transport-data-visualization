@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>12月份运输数据可视化</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入Chart.js，增加版本锁定和加载失败处理 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -18,6 +19,8 @@
             color: #333;
             padding: 20px;
             line-height: 1.6;
+            /* 增加最小高度，避免内容过少时布局塌陷 */
+            min-height: 100vh;
         }
 
         .header {
@@ -28,11 +31,17 @@
             color: white;
             border-radius: 12px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            /* 增加渐变背景兼容性 */
+            background: -webkit-linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
         }
 
         .header h1 {
             font-size: 2.4rem;
             margin-bottom: 10px;
+            /* 适配小屏幕字体大小 */
+            @media (max-width: 768px) {
+                font-size: 1.8rem;
+            }
         }
 
         .header p {
@@ -43,17 +52,20 @@
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            /* 增加内边距，避免内容贴边 */
+            padding: 0 15px;
         }
 
         .row {
             display: flex;
             flex-wrap: wrap;
             margin: 0 -15px;
+            margin-bottom: 20px;
         }
 
         .col {
             flex: 1;
-            min-width: 500px;
+            min-width: 320px; /* 降低最小宽度，适配手机屏幕 */
             padding: 15px;
         }
 
@@ -63,12 +75,17 @@
             padding: 25px;
             margin-bottom: 30px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             height: 100%;
+            /* 增加加载动画占位 */
+            position: relative;
+            overflow: hidden;
         }
 
+        /* 卡片悬浮效果增强 */
         .chart-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         }
 
         .chart-title {
@@ -84,6 +101,51 @@
             position: relative;
             height: 300px;
             width: 100%;
+            /* 增加加载状态提示 */
+        }
+
+        /* 加载中样式 */
+        .chart-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 10;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2575fc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 错误提示样式 */
+        .chart-error {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e74c3c;
+            font-size: 1rem;
+            text-align: center;
+            padding: 20px;
         }
 
         .summary-box {
@@ -91,16 +153,552 @@
             justify-content: space-around;
             margin-top: 20px;
             flex-wrap: wrap;
+            gap: 15px; /* 替换margin，更现代的间距控制 */
+            padding: 0 10px;
         }
 
         .summary-item {
             text-align: center;
-            padding: 15px;
+            padding: 20px 15px;
             background: #f8f9fa;
             border-radius: 8px;
-            margin: 10px;
             flex: 1;
-            min-width: 200px;
+            min-width: 180px; /* 适配手机屏幕 */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
+        }
+
+        .summary-item:hover {
+            transform: scale(1.02);
         }
 
         .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 5px;
+            /* 数字动画效果 */
+            position: relative;
+        }
+
+        .summary-label {
+            font-size: 1rem;
+            color: #7f8c8d;
+            /* 换行处理 */
+            word-break: keep-all;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #95a5a6;
+            font-size: 0.9rem;
+            padding-bottom: 20px;
+        }
+
+        /* 响应式优化 */
+        @media (max-width: 768px) {
+            .col {
+                min-width: 100%;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .chart-card {
+                padding: 20px 15px;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+
+            .summary-item {
+                min-width: 140px;
+                padding: 15px 10px;
+            }
+
+            .summary-value {
+                font-size: 1.6rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .summary-box {
+                gap: 10px;
+            }
+
+            .summary-item {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>12月份运输数据可视化报告</h1>
+            <p>总计：3507.6吨 | 1905单 | 106车次</p>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">1. 各类运输吨数对比</h2>
+                    <div class="chart-container">
+                        <div class="chart-loading">
+                            <div class="loading-spinner"></div>
+                        </div>
+                        <canvas id="tonsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">2. 各类运输单数对比</h2>
+                    <div class="chart-container">
+                        <div class="chart-loading">
+                            <div class="loading-spinner"></div>
+                        </div>
+                        <canvas id="ordersChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">3. 运输吨数占比分布</h2>
+                    <div class="chart-container">
+                        <div class="chart-loading">
+                            <div class="loading-spinner"></div>
+                        </div>
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">4. 车次与吨数关系（保温车/包车）</h2>
+                    <div class="chart-container">
+                        <div class="chart-loading">
+                            <div class="loading-spinner"></div>
+                        </div>
+                        <canvas id="tripsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">5. 普货与危险品汇总对比</h2>
+                    <div class="chart-container">
+                        <div class="chart-loading">
+                            <div class="loading-spinner"></div>
+                        </div>
+                        <canvas id="summaryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-box">
+            <div class="summary-item">
+                <div class="summary-value" id="totalTons">3507.6</div>
+                <div class="summary-label">总吨数（吨）</div>
+            </div>
+
+            <div class="summary-item">
+                <div class="summary-value" id="totalOrders">1905</div>
+                <div class="summary-label">总单数（单）</div>
+            </div>
+
+            <div class="summary-item">
+                <div class="summary-value" id="totalTrips">106</div>
+                <div class="summary-label">总车次（车）</div>
+            </div>
+
+            <div class="summary-item">
+                <div class="summary-value" id="generalGoodsRatio">27.0%</div>
+                <div class="summary-label">普货占比</div>
+            </div>
+
+            <div class="summary-item">
+                <div class="summary-value" id="hazardousRatio">73.0%</div>
+                <div class="summary-label">危险品占比</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>数据更新时间：12月31日 | 数据来源：运输管理系统</p>
+            <p style="margin-top: 8px; font-size: 0.8rem;">© 2026 运输数据可视化平台</p>
+        </div>
+    </div>
+
+    <script>
+        // 等待DOM加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 隐藏加载动画的函数
+            function hideLoading(chartId) {
+                const container = document.querySelector(`#${chartId}`).parentNode;
+                const loading = container.querySelector('.chart-loading');
+                if (loading) loading.style.display = 'none';
+            }
+
+            // 显示错误信息的函数
+            function showError(chartId, message) {
+                const container = document.querySelector(`#${chartId}`).parentNode;
+                const loading = container.querySelector('.chart-loading');
+                if (loading) {
+                    loading.innerHTML = `<div class="chart-error">${message}</div>`;
+                }
+            }
+
+            // 数据准备 - 抽离成独立对象，便于维护
+            const dataConfig = {
+                categories: ['普货转库', '危险品转库', '普货保温车', '危险品保温车', '危险品包车', '危险品零担', '普货零担'],
+                tons: [497.0, 1351.0, 303.7, 313.0, 154.0, 735.0, 145.0],
+                orders: [29, 55, 130, 226, 153, 1130, 182],
+                trips: [null, null, 53, 36, 17, null, null],
+                tripCategories: ['普货保温车', '危险品保温车', '危险品包车'],
+                tripTons: [303.7, 313.0, 154.0],
+                tripCounts: [53, 36, 17],
+                summaryData: {
+                    generalTons: 945.7,
+                    hazardousTons: 2553.0,
+                    generalOrders: 341,
+                    hazardousOrders: 1564
+                },
+                colors: [
+                    '#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', 
+                    '#118AB2', '#073B4C', '#EF476F'
+                ]
+            };
+
+            // 1. 吨数对比柱状图
+            try {
+                const tonsCtx = document.getElementById('tonsChart').getContext('2d');
+                new Chart(tonsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: dataConfig.categories,
+                        datasets: [{
+                            label: '吨数（吨）',
+                            data: dataConfig.tons,
+                            backgroundColor: dataConfig.colors,
+                            borderColor: dataConfig.colors.map(color => color.replace('0.8', '1')),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw.toFixed(1)}吨`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: '吨数（吨）' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            x: {
+                                ticks: { maxRotation: 45 },
+                                grid: { display: false }
+                            }
+                        },
+                        animation: {
+                            duration: 1000, // 增加动画时长，提升体验
+                            easing: 'easeOutQuart'
+                        }
+                    }
+                });
+                hideLoading('tonsChart');
+            } catch (e) {
+                console.error('吨数图表加载失败:', e);
+                showError('tonsChart', '吨数对比图表加载失败，请刷新页面重试');
+            }
+
+            // 2. 单数对比柱状图
+            try {
+                const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+                new Chart(ordersCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: dataConfig.categories,
+                        datasets: [{
+                            label: '单数（单）',
+                            data: dataConfig.orders,
+                            backgroundColor: dataConfig.colors.map(color => color + 'CC'),
+                            borderColor: dataConfig.colors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw}单`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: '单数（单）' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            x: {
+                                ticks: { maxRotation: 45 },
+                                grid: { display: false }
+                            }
+                        },
+                        animation: { duration: 1000, easing: 'easeOutQuart' }
+                    }
+                });
+                hideLoading('ordersChart');
+            } catch (e) {
+                console.error('单数图表加载失败:', e);
+                showError('ordersChart', '单数对比图表加载失败，请刷新页面重试');
+            }
+
+            // 3. 饼图
+            try {
+                const pieCtx = document.getElementById('pieChart').getContext('2d');
+                new Chart(pieCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: dataConfig.categories,
+                        datasets: [{
+                            data: dataConfig.tons,
+                            backgroundColor: dataConfig.colors,
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { padding: 20, usePointStyle: true }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.raw;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${context.label}: ${value.toFixed(1)}吨 (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        animation: { duration: 1500, easing: 'easeOutCubic' }
+                    }
+                });
+                hideLoading('pieChart');
+            } catch (e) {
+                console.error('饼图加载失败:', e);
+                showError('pieChart', '吨数占比图表加载失败，请刷新页面重试');
+            }
+
+            // 4. 车次与吨数关系图
+            try {
+                const tripsCtx = document.getElementById('tripsChart').getContext('2d');
+                new Chart(tripsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: dataConfig.tripCategories,
+                        datasets: [
+                            {
+                                label: '吨数（吨）',
+                                data: dataConfig.tripTons,
+                                backgroundColor: '#4ECDC4',
+                                borderColor: '#4ECDC4',
+                                borderWidth: 1,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: '车次（车）',
+                                data: dataConfig.tripCounts,
+                                backgroundColor: '#FFD166',
+                                borderColor: '#FFD166',
+                                borderWidth: 1,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { tooltip: { mode: 'index', intersect: false } },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: { display: true, text: '吨数（吨）' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: { display: true, text: '车次（车）' },
+                                grid: { drawOnChartArea: false }
+                            }
+                        },
+                        animation: { duration: 1000, easing: 'easeOutQuart' }
+                    }
+                });
+                hideLoading('tripsChart');
+            } catch (e) {
+                console.error('车次图表加载失败:', e);
+                showError('tripsChart', '车次与吨数关系图表加载失败，请刷新页面重试');
+            }
+
+            // 5. 普货与危险品汇总对比
+            try {
+                const summaryCtx = document.getElementById('summaryChart').getContext('2d');
+                new Chart(summaryCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['普货汇总', '危险品汇总'],
+                        datasets: [
+                            {
+                                label: '吨数（吨）',
+                                data: [dataConfig.summaryData.generalTons, dataConfig.summaryData.hazardousTons],
+                                backgroundColor: ['#FF6B6B', '#118AB2'],
+                                borderColor: ['#FF6B6B', '#118AB2'],
+                                borderWidth: 1,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: '单数（单）',
+                                data: [dataConfig.summaryData.generalOrders, dataConfig.summaryData.hazardousOrders],
+                                backgroundColor: ['#FF6B6B88', '#118AB288'],
+                                borderColor: ['#FF6B6B', '#118AB2'],
+                                borderWidth: 1,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.datasetIndex === 0 
+                                            ? `${context.label}: ${context.raw.toFixed(1)}吨` 
+                                            : `${context.label}: ${context.raw}单`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: { display: true, text: '吨数（吨）' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: { display: true, text: '单数（单）' },
+                                grid: { drawOnChartArea: false }
+                            }
+                        },
+                        animation: { duration: 1000, easing: 'easeOutQuart' }
+                    }
+                });
+                hideLoading('summaryChart');
+            } catch (e) {
+                console.error('汇总图表加载失败:', e);
+                showError('summaryChart', '汇总对比图表加载失败，请刷新页面重试');
+            }
+
+            // 数字滚动动画效果（增强视觉体验）
+            function animateNumber(elementId, targetValue, duration = 2000) {
+                const element = document.getElementById(elementId);
+                if (!element) return;
+                
+                const isPercentage = typeof targetValue === 'string' && targetValue.includes('%');
+                let numTarget = isPercentage ? parseFloat(targetValue) : parseFloat(targetValue);
+                let currentNum = 0;
+                const increment = numTarget / (duration / 16);
+                
+                const timer = setInterval(() => {
+                    currentNum += increment;
+                    if (currentNum >= numTarget) {
+                        clearInterval(timer);
+                        currentNum = numTarget;
+                    }
+                    
+                    if (isPercentage) {
+                        element.textContent = `${currentNum.toFixed(1)}%`;
+                    } else if (Number.isInteger(numTarget)) {
+                        element.textContent = Math.floor(currentNum);
+                    } else {
+                        element.textContent = currentNum.toFixed(1);
+                    }
+                }, 16);
+            }
+
+            // 执行数字动画
+            setTimeout(() => {
+                animateNumber('totalTons', 3507.6);
+                animateNumber('totalOrders', 1905);
+                animateNumber('totalTrips', 106);
+                animateNumber('generalGoodsRatio', '27.0%');
+                animateNumber('hazardousRatio', '73.0%');
+            }, 500);
+        });
+
+        // Chart.js加载失败的备用处理
+        window.addEventListener('error', function(e) {
+            if (e.target.src && e.target.src.includes('chart.js')) {
+                alert('图表加载失败：Chart.js资源无法访问，请检查网络或刷新页面');
+                // 隐藏所有加载动画，显示错误提示
+                document.querySelectorAll('.chart-loading').forEach(loading => {
+                    loading.innerHTML = '<div class="chart-error">图表加载失败：缺少必要的图表库，请检查网络连接</div>';
+                });
+            }
+        });
+    </script>
+</body>
+</html>
