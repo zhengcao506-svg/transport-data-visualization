@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>11月份运输数据可视化报告</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.4rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -15px;
+        }
+        
+        .col {
+            flex: 1;
+            min-width: 500px;
+            padding: 15px;
+        }
+        
+        .chart-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+        
+        .chart-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .chart-title {
+            font-size: 1.4rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .summary-box {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 10px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        
+        .summary-label {
+            font-size: 1rem;
+            color: #7f8c8d;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .data-table th {
+            background-color: #1a2980;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .data-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .data-table .highlight {
+            background-color: #e8f4fd;
+            font-weight: 600;
+        }
+        
+        .insights {
+            background-color: #fff9e6;
+            border-left: 4px solid #ffcc00;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .insights h3 {
+            color: #e67e22;
+            margin-bottom: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #95a5a6;
+            font-size: 0.9rem;
+        }
+        
+        .toggle-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .toggle-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        @media (max-width: 768px) {
+            .col {
+                min-width: 100%;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>11月份运输数据可视化报告</h1>
+            <p>总计：4001.27吨 | 2158单 | 76车次</p>
+        </div>
+        
+        <div class="row">
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">1. 各类运输吨数对比</h2>
+                    <div class="chart-container">
+                        <canvas id="tonsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">2. 各类运输单数对比</h2>
+                    <div class="chart-container">
+                        <canvas id="ordersChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">3. 运输吨数占比分布</h2>
+                    <div class="chart-container">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">4. 车次与吨数关系（保温车/包车）</h2>
+                    <div class="chart-container">
+                        <canvas id="tripsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col">
+                <div class="chart-card">
+                    <h2 class="chart-title">5. 普货与危险品汇总对比</h2>
+                    <div class="chart-container">
+                        <canvas id="summaryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="toggle-btn" onclick="toggleTable()">显示/隐藏详细数据表</button>
+        
+        <div id="dataTableSection" style="display: none;">
+            <div class="chart-card">
+                <h2 class="chart-title">详细数据表</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>运输类别</th>
+                            <th>吨数（吨）</th>
+                            <th>占比</th>
+                            <th>单数（单）</th>
+                            <th>占比</th>
+                            <th>车次（车）</th>
+                            <th>平均每单重量</th>
+                            <th>平均每车装载</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>普货转库</td>
+                            <td>567.23</td>
+                            <td>14.2%</td>
+                            <td>32</td>
+                            <td>1.5%</td>
+                            <td>-</td>
+                            <td>17.73</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>危险品转库</td>
+                            <td class="highlight">1516.00</td>
+                            <td class="highlight">37.9%</td>
+                            <td>62</td>
+                            <td>2.9%</td>
+                            <td>-</td>
+                            <td class="highlight">24.45</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>普货保温车</td>
+                            <td>159.12</td>
+                            <td>4.0%</td>
+                            <td>72</td>
+                            <td>3.3%</td>
+                            <td>28</td>
+                            <td>2.21</td>
+                            <td>5.68</td>
+                        </tr>
+                        <tr>
+                            <td>普货包车</td>
+                            <td>45.40</td>
+                            <td>1.1%</td>
+                            <td>19</td>
+                            <td>0.9%</td>
+                            <td>12</td>
+                            <td>2.39</td>
+                            <td>3.78</td>
+                        </tr>
+                        <tr>
+                            <td>危险品保温车</td>
+                            <td>192.00</td>
+                            <td>4.8%</td>
+                            <td>112</td>
+                            <td>5.2%</td>
+                            <td>20</td>
+                            <td>1.71</td>
+                            <td>9.60</td>
+                        </tr>
+                        <tr>
+                            <td>危险品包车</td>
+                            <td>241.00</td>
+                            <td>6.0%</td>
+                            <td>253</td>
+                            <td>11.7%</td>
+                            <td>16</td>
+                            <td>0.95</td>
+                            <td class="highlight">15.06</td>
+                        </tr>
+                        <tr>
+                            <td>危险品零担</td>
+                            <td>892.00</td>
+                            <td>22.3%</td>
+                            <td class="highlight">1321</td>
+                            <td class="highlight">61.2%</td>
+                            <td>-</td>
+                            <td>0.68</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>普货零担</td>
+                            <td>388.54</td>
+                            <td>9.7%</td>
+                            <td>287</td>
+                            <td>13.3%</td>
+                            <td>-</td>
+                            <td>1.35</td>
+                            <td>-</td>
+                        </tr>
+                        <tr style="font-weight: bold; background-color: #f0f8ff;">
+                            <td>总计</td>
+                            <td>4001.27</td>
+                            <td>100.0%</td>
+                            <td>2158</td>
+                            <td>100.0%</td>
+                            <td>76</td>
+                            <td>1.85</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="insights">
+            <h3>关键洞察分析</h3>
+            <p>1. <strong>危险品运输主导市场</strong>：危险品运输占总吨数的71.0%，总单数的81.0%</p>
+            <p>2. <strong>业务效率两极分化</strong>：危险品转库单票重量最大（24.45吨/单），危险品零担最小（0.68吨/单）</p>
+            <p>3. <strong>车辆装载效率差异显著</strong>：危险品包车装载效率最高（15.06吨/车），普货包车最低（3.78吨/车）</p>
+            <p>4. <strong>零担业务单数集中</strong>：危险品零担单数占比高达61.2%，但吨数仅占22.3%</p>
+            <p>5. <strong>平均单票重量稳定</strong>：整体平均每单重量为1.85吨，业务结构相对平衡</p>
+        </div>
+        
+        <div class="summary-box">
+            <div class="summary-item">
+                <div class="summary-value">4001.27</div>
+                <div class="summary-label">总吨数（吨）</div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-value">2158</div>
+                <div class="summary-label">总单数（单）</div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-value">76</div>
+                <div class="summary-label">总车次（车）</div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-value">29.0%</div>
+                <div class="summary-label">普货占比</div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-value">71.0%</div>
+                <div class="summary-label">危险品占比</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>数据统计时间：11月30日 | 数据来源：运输管理系统</p>
+            <p>报告生成时间：<span id="currentDate"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // 设置当前日期
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('zh-CN');
+        
+        // 切换数据表显示
+        function toggleTable() {
+            const tableSection = document.getElementById('dataTableSection');
+            if (tableSection.style.display === 'none') {
+                tableSection.style.display = 'block';
+            } else {
+                tableSection.style.display = 'none';
+            }
+        }
+        
+        // 数据准备 - 11月份
+        const categories = ['普货转库', '危险品转库', '普货保温车', '普货包车', '危险品保温车', '危险品包车', '危险品零担', '普货零担'];
+        const tons = [567.23, 1516.0, 159.12, 45.4, 192.0, 241.0, 892.0, 388.54];
+        const orders = [32, 62, 72, 19, 112, 253, 1321, 287];
+        
+        // 颜色方案
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', 
+            '#118AB2', '#073B4C', '#EF476F', '#7209B7'
+        ];
+        
+        // 1. 吨数对比柱状图
+        const tonsCtx = document.getElementById('tonsChart').getContext('2d');
+        new Chart(tonsCtx, {
+            type: 'bar',
+            data: {
+                labels: categories,
+                datasets: [{
+                    label: '吨数（吨）',
+                    data: tons,
+                    backgroundColor: colors,
+                    borderColor: colors.map(color => color.replace('0.8', '1')),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${context.label}: ${value.toFixed(2)}吨 (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '吨数（吨）'
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 2. 单数对比柱状图
+        const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+        new Chart(ordersCtx, {
+            type: 'bar',
+            data: {
+                labels: categories,
+                datasets: [{
+                    label: '单数（单）',
+                    data: orders,
+                    backgroundColor: colors.map(color => color + 'CC'),
+                    borderColor: colors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${context.label}: ${value}单 (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '单数（单）'
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 3. 饼图
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: categories,
+                datasets: [{
+                    data: tons,
+                    backgroundColor: colors,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${context.label}: ${value.toFixed(2)}吨 (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 4. 车次与吨数关系图
+        const tripCategories = ['普货保温车', '普货包车', '危险品保温车', '危险品包车'];
+        const tripTons = [159.12, 45.4, 192.0, 241.0];
+        const tripCounts = [28, 12, 20, 16];
+        
+        const tripsCtx = document.getElementById('tripsChart').getContext('2d');
+        new Chart(tripsCtx, {
+            type: 'bar',
+            data: {
+                labels: tripCategories,
+                datasets: [
+                    {
+                        label: '吨数（吨）',
+                        data: tripTons,
+                        backgroundColor: '#4ECDC4',
+                        borderColor: '#4ECDC4',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '车次（车）',
+                        data: tripCounts,
+                        backgroundColor: '#FFD166',
+                        borderColor: '#FFD166',
+                        borderWidth: 1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    const efficiency = (tripTons[context.dataIndex] / tripCounts[context.dataIndex]).toFixed(2);
+                                    return `${context.label}: ${context.raw.toFixed(2)}吨 (${efficiency}吨/车)`;
+                                } else {
+                                    return `${context.label}: ${context.raw}车`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: '吨数（吨）'
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: '车次（车）'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 5. 普货与危险品汇总对比
+        // 计算普货和危险品汇总
+        const generalCategories = ['普货转库', '普货保温车', '普货包车', '普货零担'];
+        const dangerousCategories = ['危险品转库', '危险品保温车', '危险品包车', '危险品零担'];
+        
+        let generalTons = 0;
+        let dangerousTons = 0;
+        let generalOrders = 0;
+        let dangerousOrders = 0;
+        
+        categories.forEach((cat, index) => {
+            if (generalCategories.includes(cat)) {
+                generalTons += tons[index];
+                generalOrders += orders[index];
+            } else if (dangerousCategories.includes(cat)) {
+                dangerousTons += tons[index];
+                dangerousOrders += orders[index];
+            }
+        });
+        
+        const summaryCtx = document.getElementById('summaryChart').getContext('2d');
+        new Chart(summaryCtx, {
+            type: 'bar',
+            data: {
+                labels: ['普货汇总', '危险品汇总'],
+                datasets: [
+                    {
+                        label: '吨数（吨）',
+                        data: [generalTons, dangerousTons],
+                        backgroundColor: ['#FF6B6B', '#118AB2'],
+                        borderColor: ['#FF6B6B', '#118AB2'],
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '单数（单）',
+                        data: [generalOrders, dangerousOrders],
+                        backgroundColor: ['#FF6B6B88', '#118AB288'],
+                        borderColor: ['#FF6B6B', '#118AB2'],
+                        borderWidth: 1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                const totalTons = generalTons + dangerousTons;
+                                const totalOrders = generalOrders + dangerousOrders;
+                                
+                                if (context.datasetIndex === 0) {
+                                    const percentage = ((context.raw / totalTons) * 100).toFixed(1);
+                                    return `${context.label}: ${context.raw.toFixed(2)}吨 (${percentage}%)`;
+                                } else {
+                                    const percentage = ((context.raw / totalOrders) * 100).toFixed(1);
+                                    return `${context.label}: ${context.raw}单 (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: '吨数（吨）'
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: '单数（单）'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 打印汇总数据到控制台
+        console.log('=== 11月份运输数据汇总 ===');
+        console.log(`总吨数: ${tons.reduce((a, b) => a + b, 0).toFixed(2)}吨`);
+        console.log(`总单数: ${orders.reduce((a, b) => a + b, 0)}单`);
+        console.log(`普货吨数: ${generalTons.toFixed(2)}吨 (${((generalTons/(generalTons+dangerousTons))*100).toFixed(1)}%)`);
+        console.log(`危险品吨数: ${dangerousTons.toFixed(2)}吨 (${((dangerousTons/(generalTons+dangerousTons))*100).toFixed(1)}%)`);
+        console.log(`普货单数: ${generalOrders}单 (${((generalOrders/(generalOrders+dangerousOrders))*100).toFixed(1)}%)`);
+        console.log(`危险品单数: ${dangerousOrders}单 (${((dangerousOrders/(generalOrders+dangerousOrders))*100).toFixed(1)}%)`);
+    </script>
+</body>
+</html>
